@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resume Analyzer | Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a href="dashboard.html" class="logo">AI Resume Analyzer</a>
+        <nav class="nav-links">
+          <a href="upload.html">New Analysis</a>
+          <a href="result.html">Latest Result</a>
+          <button id="logout-btn" class="btn btn-ghost" type="button">Logout</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-wrap" id="dashboard-page">
+      <section class="card welcome-card">
+        <p class="eyebrow">Dashboard</p>
+        <h1>Welcome, <span id="user-email">-</span></h1>
+        <p>Track your past analyses and continue improving your resume for target roles.</p>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Analysis History</h2>
+          <a href="upload.html" class="btn btn-primary">Analyze New Resume</a>
+        </div>
+        <p class="error-banner" id="dashboard-error" aria-live="polite"></p>
+        <div id="history-loading" class="loading-state">Loading history...</div>
+        <div id="history-list" class="history-grid"></div>
+        <p id="history-empty" class="muted hidden">No analysis history yet.</p>
+      </section>
+    </main>
+  </body>
+</html>

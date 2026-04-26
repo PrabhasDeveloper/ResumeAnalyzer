@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resume Analyzer | Result</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a href="dashboard.html" class="logo">AI Resume Analyzer</a>
+        <nav class="nav-links">
+          <a href="dashboard.html">Dashboard</a>
+          <a href="upload.html">New Analysis</a>
+          <button id="logout-btn" class="btn btn-ghost" type="button">Logout</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-wrap" id="result-page">
+      <section class="card result-hero">
+        <p class="eyebrow">AI Match Result</p>
+        <h1>Resume-to-role compatibility insights</h1>
+        <p id="result-subtitle">Comprehensive backend AI analysis output.</p>
+        <p class="error-banner" id="result-error" aria-live="polite"></p>
+      </section>
+
+      <section class="result-grid">
+        <article class="card score-card">
+          <h2>Score Card</h2>
+          <div class="score-number" id="match-score-value">-</div>
+          <div class="progress-track">
+            <div class="progress-fill" id="score-progress"></div>
+          </div>
+          <p id="match-explanation" class="muted">No explanation available yet.</p>
+        </article>
+
+        <article class="card">
+          <h2>Skills Match</h2>
+          <ul id="skills-list" class="pill-list"></ul>
+        </article>
+
+        <article class="card">
+          <h2>Missing Skills</h2>
+          <ul id="missing-skills-list" class="pill-list warning"></ul>
+        </article>
+
+        <article class="card">
+          <h2>Suggestions</h2>
+          <ul id="suggestions-list" class="detail-list"></ul>
+        </article>
+
+        <article class="card full-span">
+          <h2>Resume Improvements</h2>
+          <ul id="improvements-list" class="detail-list"></ul>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

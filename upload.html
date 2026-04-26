@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Resume Analyzer | Upload</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a href="dashboard.html" class="logo">AI Resume Analyzer</a>
+        <nav class="nav-links">
+          <a href="dashboard.html">Dashboard</a>
+          <a href="result.html">Latest Result</a>
+          <button id="logout-btn" class="btn btn-ghost" type="button">Logout</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page-wrap" id="upload-page">
+      <section class="card">
+        <p class="eyebrow">Upload Resume + Context</p>
+        <h1>Run a fresh AI analysis</h1>
+        <p>Submit your PDF resume and target role details. Analysis is generated entirely by backend AI APIs.</p>
+
+        <p class="error-banner" id="upload-error" aria-live="polite"></p>
+        <form id="upload-form" class="upload-form">
+          <label for="resume-file">Resume (PDF only)</label>
+          <input type="file" id="resume-file" name="resume" accept="application/pdf" required />
+
+          <label for="role">Target Role</label>
+          <input type="text" id="role" name="role" placeholder="e.g., Backend Developer" required />
+
+          <label for="job-description">Job Description</label>
+          <textarea
+            id="job-description"
+            name="jobDescription"
+            rows="8"
+            placeholder="Paste the full job description here"
+            required
+          ></textarea>
+
+          <button type="submit" class="btn btn-primary" id="analyze-btn">Upload and Analyze</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

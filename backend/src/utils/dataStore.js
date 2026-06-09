@@ -78,12 +78,13 @@ async function findUserById(userId) {
   return mapDoc(user);
 }
 
-async function storeResume({ userId, filename, text }) {
+async function storeResume({ userId, filename, text, parseMetadata = null }) {
   const resume = {
     id: createId("res"),
     userId,
     filename,
     text,
+    parseMetadata,
   };
 
   const inserted = await resumesDb.insert(resume);

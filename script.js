@@ -1,4 +1,5 @@
-const API_BASE = "http://localhost:4001";
+const API_BASES = ["http://localhost:4001", "http://localhost:4002"];
+let activeApiBase = null;
 
 const STORAGE_KEYS = {
 	token: "token",
@@ -8,6 +9,13 @@ const STORAGE_KEYS = {
 };
 
 async function apiRequest(endpoint, method = "GET", body = null) {
+	if (!activeApiBase) {
+		const savedApiBase = localStorage.getItem("apiBase");
+		if (savedApiBase && API_BASES.includes(savedApiBase)) {
+			activeApiBase = savedApiBase;
+		}
+	}
+
 	const token = localStorage.getItem(STORAGE_KEYS.token);
 	const headers = {
 		Accept: "application/json",
@@ -26,11 +34,32 @@ async function apiRequest(endpoint, method = "GET", body = null) {
 		requestBody = JSON.stringify(body);
 	}
 
-	const response = await fetch(`${API_BASE}${endpoint}`, {
-		method,
-		headers,
-		body: requestBody,
-	});
+	const candidateBases = activeApiBase
+		? [activeApiBase, ...API_BASES.filter((base) => base !== activeApiBase)]
+		: API_BASES;
+
+	let response = null;
+	let lastNetworkError = null;
+
+	for (const base of candidateBases) {
+		try {
+			response = await fetch(`${base}${endpoint}`, {
+				method,
+				headers,
+				body: requestBody,
+			});
+
+			activeApiBase = base;
+			localStorage.setItem("apiBase", base);
+			break;
+		} catch (error) {
+			lastNetworkError = error;
+		}
+	}
+
+	if (!response) {
+		throw new Error(lastNetworkError?.message || "Unable to connect to backend API.");
+	}
 
 	const raw = await response.text();
 	let data = null;
@@ -150,6 +179,16 @@ function normalizeAnalysis(raw) {
 		return {};
 	}
 	return raw.analysis || raw.result || raw.data || raw;
+}
+
+function hasRenderableAnalysis(result) {
+	if (!result || typeof result !== "object") {
+		return false;
+	}
+
+	const analysis = normalizeAnalysis(result);
+	const score = pickFirst(analysis, ["matchScore", "score", "match_percentage", "matchPercent"], null);
+	return score !== null && score !== undefined && !Number.isNaN(Number(String(score).replace("%", "")));
 }
 
 function initAuthPage() {
@@ -287,9 +326,10 @@ async function initDashboardPage() {
 
 		history.forEach((item) => {
 			const role = pickFirst(item, ["role", "targetRole"], "Role not provided");
-			const score = pickFirst(item, ["matchScore", "score"], "-");
+			const score = pickFirst(item, ["matchScore", "score"], pickFirst(item.analysis, ["score"], "-"));
 			const createdAt = pickFirst(item, ["createdAt", "timestamp"], "Unknown date");
 			const resumeId = pickFirst(item, ["resumeId", "id"], "");
+			const historyId = pickFirst(item, ["id"], "");
 
 			const card = document.createElement("article");
 			card.className = "history-item";
@@ -306,7 +346,9 @@ async function initDashboardPage() {
 			button.addEventListener("click", () => {
 				localStorage.setItem(STORAGE_KEYS.resumeId, resumeId);
 				localStorage.setItem(STORAGE_KEYS.latestResult, JSON.stringify(item));
-				window.location.href = "result.html";
+				window.location.href = historyId
+					? `result.html?historyId=${encodeURIComponent(historyId)}`
+					: "result.html";
 			});
 
 			historyList.appendChild(card);
@@ -337,8 +379,11 @@ function initUploadPage() {
 	const roleInput = document.getElementById("role");
 	const jobDescriptionInput = document.getElementById("job-description");
 
-	uploadForm.addEventListener("submit", async (event) => {
-		event.preventDefault();
+	if (!uploadForm || !analyzeBtn) {
+		return;
+	}
+
+	const runAnalyze = async () => {
 		clearMessage(errorEl);
 
 		try {
@@ -377,13 +422,35 @@ function initUploadPage() {
 				jobDescription,
 			});
 
-			localStorage.setItem(STORAGE_KEYS.latestResult, JSON.stringify(analysisResponse));
-			window.location.href = "result.html";
+			const normalizedAnalysis = normalizeAnalysis(analysisResponse);
+			const latestResultPayload = {
+				resumeId,
+				role,
+				jobDescription,
+				analysis: normalizedAnalysis,
+				raw: analysisResponse,
+			};
+
+			localStorage.setItem(STORAGE_KEYS.latestResult, JSON.stringify(latestResultPayload));
+			const historyId = pickFirst(analysisResponse, ["historyId", "id"], "");
+			window.location.href = historyId
+				? `result.html?historyId=${encodeURIComponent(historyId)}`
+				: "result.html";
 		} catch (error) {
 			showMessage(errorEl, error.message || "Unable to process analysis.");
 		} finally {
 			setButtonLoading(analyzeBtn, false);
 		}
+	};
+
+	uploadForm.addEventListener("submit", async (event) => {
+		event.preventDefault();
+		runAnalyze();
+	});
+
+	analyzeBtn.addEventListener("click", (event) => {
+		event.preventDefault();
+		runAnalyze();
 	});
 }
 
@@ -411,11 +478,27 @@ function renderList(elementId, values, emptyText) {
 }
 
 async function resolveLatestResultForView() {
+	const params = new URLSearchParams(window.location.search);
+	const historyId = params.get("historyId");
+
+	if (historyId) {
+		try {
+			return await resolveResultFromHistoryById(historyId);
+		} catch (error) {
+			// Fallback to cached/latest result if specific history lookup fails.
+		}
+	}
+
 	const latestResultRaw = localStorage.getItem(STORAGE_KEYS.latestResult);
 
 	if (latestResultRaw) {
 		try {
-			return JSON.parse(latestResultRaw);
+			const parsed = JSON.parse(latestResultRaw);
+			if (hasRenderableAnalysis(parsed)) {
+				return parsed;
+			}
+
+			localStorage.removeItem(STORAGE_KEYS.latestResult);
 		} catch (error) {
 			localStorage.removeItem(STORAGE_KEYS.latestResult);
 		}
@@ -433,6 +516,29 @@ async function resolveLatestResultForView() {
 	const latest = historyItems[0];
 	localStorage.setItem(STORAGE_KEYS.latestResult, JSON.stringify(latest));
 	return latest;
+}
+
+async function resolveResultFromHistoryById(historyId) {
+	const historyResponse = await apiRequest("/history", "GET");
+	const historyItems = Array.isArray(historyResponse)
+		? historyResponse
+		: pickFirst(historyResponse, ["history", "items", "data"], []);
+
+	if (!Array.isArray(historyItems) || historyItems.length === 0) {
+		throw new Error("No analysis found. Please upload a resume first.");
+	}
+
+	const matched = historyItems.find(
+		(item) =>
+			String(item.id || "") === String(historyId) ||
+			String(item.historyId || "") === String(historyId),
+	);
+	if (!matched) {
+		throw new Error("Requested result was not found in history.");
+	}
+
+	localStorage.setItem(STORAGE_KEYS.latestResult, JSON.stringify(matched));
+	return matched;
 }
 
 async function initResultPage() {
@@ -471,7 +577,7 @@ async function initResultPage() {
 			"No explanation provided by backend.",
 		);
 
-		const role = pickFirst(analysis, ["role", "targetRole"], "the selected role");
+		const role = pickFirst(latestResult, ["role", "targetRole"], "the selected role");
 
 		scoreValueEl.textContent = `${scoreNumeric}%`;
 		scoreProgressEl.style.width = `${scoreNumeric}%`;
